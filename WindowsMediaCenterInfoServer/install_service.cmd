@@ -1,0 +1,2 @@
+﻿InstallUtil.exe WindowsMediaCenterInfoServer.exe
+pause
