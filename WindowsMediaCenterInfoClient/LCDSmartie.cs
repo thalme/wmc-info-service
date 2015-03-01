@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.ServiceModel;
+using System.ServiceModel.Channels;
 using System.Text;
 using WindowsMediaCenterInfoCommon;
 
@@ -27,12 +28,7 @@ namespace WindowsMediaCenterInfoClient
 
         public LCDSmartie()
         {
-            ChannelFactory<IRecordingsInfoService> pipeFactory = new ChannelFactory<IRecordingsInfoService>(
-                new NetNamedPipeBinding(),
-                new EndpointAddress("net.pipe://localhost/WindowsMediaCenterInfoService")
-            );
-
-            this.recordingsInfoServiceProxy = pipeFactory.CreateChannel();
+            CreateProxy();
         }
 
         /// <summary>
@@ -42,6 +38,7 @@ namespace WindowsMediaCenterInfoClient
         /// <param name="param2">Not used</param>
         public string function1(string param1, string param2)
         {
+            CheckChannel();
             return this.recordingsInfoServiceProxy.getOnGoingRecordings().Count.ToString();
         }
 
@@ -52,6 +49,8 @@ namespace WindowsMediaCenterInfoClient
         /// <param name="param2">Defines the separator between each listed recording. (i.e. "-").</param>
         public string function2(string param1, string param2)
         {
+            CheckChannel();
+
             string recordingDisplayFormat = (String.IsNullOrEmpty(param1) ? DEFAULT_RECORDING_DISPLAY_FORMAT : param1);
             string recordingDisplaySeparator = (String.IsNullOrEmpty(param2) ? DEFAULT_RECORDING_DISPLAY_SEPARATOR : param2);
 
@@ -71,6 +70,24 @@ namespace WindowsMediaCenterInfoClient
 
 
         #region ### HELPER METHODS ###
+
+        private void CheckChannel()
+        {
+            if (((IChannel)recordingsInfoServiceProxy).State == CommunicationState.Faulted)
+            {
+                CreateProxy();
+            }
+        }
+
+        private void CreateProxy()
+        {
+            ChannelFactory<IRecordingsInfoService> recordingsInfoServiceChannelFactory = new ChannelFactory<IRecordingsInfoService>(
+                new NetNamedPipeBinding(),
+                new EndpointAddress("net.pipe://localhost/WindowsMediaCenterInfoService")
+            );
+
+            this.recordingsInfoServiceProxy = recordingsInfoServiceChannelFactory.CreateChannel();
+        }
 
         private string RenderRecordingsToSingleLine(ICollection<Recording> recordings, string recordingDisplayFormat, string recordingDisplaySeparator)
         {
